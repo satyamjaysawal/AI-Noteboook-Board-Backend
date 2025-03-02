@@ -11,11 +11,11 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const server = http.createServer(app);
 
-// Ensure CLIENT_URL is set
-const CLIENT_URL ='http://localhost:5173';
-if (!process.env.CLIENT_URL) {
-  console.warn("⚠️ Warning: CLIENT_URL is not set. Defaulting to Render URL.");
-}
+// Use direct values (Replace with secure values if needed)
+const CLIENT_URL = 'https://ai-noteboook-board.onrender.com';
+const MONGODB_URI = 'mongodb+srv://todo:todo@todo.ji1xifd.mongodb.net/noteflow';
+const GOOGLE_API_KEY = 'AIzaSyC6rciKKOqOZcAJBMS11CHrxszwoX_Tgh4';
+const PORT = 5000; // Set a fixed port
 
 // CORS configuration
 app.use(cors({
@@ -26,7 +26,6 @@ app.use(cors({
 app.use(express.json());
 
 // MongoDB connection
-const MONGODB_URI = 'mongodb+srv://todo:todo@todo.ji1xifd.mongodb.net/noteflow';
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
@@ -43,14 +42,14 @@ app.set('io', io);
 // Rate limiter
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // 1000 requests in dev, 100 in prod
+  max: 100, // Limit requests per window
 });
 app.use(limiter);
 
 // Initialize Google Generative AI
 let genAI, model;
 try {
-  genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+  genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
   model = genAI.getGenerativeModel({
     model: 'gemini-1.5-flash',
     generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
@@ -66,7 +65,7 @@ const cleanMarkdown = (text) => text.replace(/```json/g, '').replace(/```/g, '')
 const formatResponse = async (task, prompt) => {
   const prompts = {
     correct_sentence: `Correct the grammar and structure of this sentence without explanation:\n"${prompt}"`,
-    word_suggestions: `Suggest 3-5 alternative words for each significant word in this text (exclude articles and prepositions). Return the suggestions as a JSON array where each item is a string in the format "word: suggestion1, suggestion2, suggestion3, suggestion4, suggestion5":\n"${prompt}"`,
+    word_suggestions: `Suggest 3-5 alternative words for each significant word in this text (exclude articles and prepositions). Return suggestions in JSON:\n"${prompt}"`,
     summarize: `Summarize this text in 1-2 sentences:\n"${prompt}"`,
     generate: `Generate a response based on this prompt:\n"${prompt}"`,
     expand: `Expand this text into a detailed paragraph:\n"${prompt}"`
@@ -81,11 +80,9 @@ const formatResponse = async (task, prompt) => {
 
     if (task === 'word_suggestions') {
       try {
-        const suggestions = JSON.parse(cleanedResponse);
-        return { suggestions };
+        return { suggestions: JSON.parse(cleanedResponse) };
       } catch {
-        const lines = cleanedResponse.split('\n').filter(line => line.trim());
-        return { suggestions: lines.length === 1 ? cleanedResponse.split(',').map(s => s.trim()) : lines };
+        return { suggestions: cleanedResponse.split('\n').map(s => s.trim()) };
       }
     }
     return { response: cleanedResponse };
@@ -133,7 +130,6 @@ app.use((err, _req, res, _next) => {
 });
 
 // Start Server
-const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}, allowing requests from ${CLIENT_URL}`);
 });
