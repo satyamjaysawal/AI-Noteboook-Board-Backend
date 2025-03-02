@@ -12,27 +12,29 @@ const app = express();
 const server = http.createServer(app);
 
 // Ensure CLIENT_URL is set
+const CLIENT_URL = 'https://ai-noteboook-board.onrender.com';
 if (!process.env.CLIENT_URL) {
-  console.warn("⚠️ Warning: CLIENT_URL is not set in .env. Defaulting to http://localhost:5173");
+  console.warn("⚠️ Warning: CLIENT_URL is not set. Defaulting to Render URL.");
 }
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: CLIENT_URL,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 }));
 
 app.use(express.json());
 
 // MongoDB connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/noteflow')
+const MONGODB_URI = 'mongodb+srv://todo:todo@todo.ji1xifd.mongodb.net/noteflow';
+mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: CLIENT_URL,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
   }
 });
@@ -119,12 +121,12 @@ io.on('connection', (socket) => {
   });
 });
 
-// 404 Route Handler (Fixed Unused `req`)
+// 404 Route Handler
 app.use((_, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Global Error Handler (Fixed Unused `req` and `next`)
+// Global Error Handler
 app.use((err, _req, res, _next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Server error', error: err.message });
@@ -133,5 +135,5 @@ app.use((err, _req, res, _next) => {
 // Start Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}, allowing requests from ${process.env.CLIENT_URL || 'http://localhost:5173'}`);
+  console.log(`🚀 Server running on port ${PORT}, allowing requests from ${CLIENT_URL}`);
 });
