@@ -11,11 +11,15 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const server = http.createServer(app);
 
-// Use direct values (Replace with secure values if needed)
-const CLIENT_URL = 'https://ai-noteboook-board.onrender.com';
-const MONGODB_URI = 'mongodb+srv://todo:todo@todo.ji1xifd.mongodb.net/noteflow';
-const GOOGLE_API_KEY = 'AIzaSyC6rciKKOqOZcAJBMS11CHrxszwoX_Tgh4';
-const PORT = 5000; // Set a fixed port
+
+const CLIENT_URL = process.env.CLIENT_URL;
+console.log('CLIENT_URL: server.js=================', CLIENT_URL);
+const MONGODB_URI = process.env.MONGODB_URI;
+console.log('MONGODB_URI: server.js=================', MONGODB_URI);
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+console.log('GOOGLE_API_KEY: server.js=================', GOOGLE_API_KEY);
+const PORT = process.env.PORT;
+console.log('PORT: server.js=================', PORT);
 
 // CORS configuration
 app.use(cors({
