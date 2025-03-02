@@ -1,0 +1,75 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+debug.log
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Build files
+dist/
+build/
+out/
+
+# Database files
+*.sqlite
+*.sqlite3
+db.json
+dump.rdb
+
+# Vercel and Deployment
+.vercel
+.now
+.dpl
+
+# Temporary files
+*.swp
+*.swo
+*.swn
+.DS_Store
+Thumbs.db
+
+# IDE and Editor settings
+.vscode/
+.idea/
+*.iml
+*.sublime-workspace
+*.sublime-project
+
+# Docker
+docker-compose.override.yml
+.dockerignore
+
+# Jest and Testing
+coverage/
+*.lcov
+jest-cache/
+jest-test-results.json
+
+# PM2 Process Manager
+pm2/logs/
+pm2/pids/
+pm2/dump.pm2
+
+# Git-related
+.git/
+!.gitignore

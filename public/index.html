@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Note Canvas</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f5f5;
+      overflow: hidden;
+    }
+    
+    #canvas {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .toolbar {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 10px 20px;
+      display: flex;
+      gap: 15px;
+      z-index: 1000;
+    }
+    
+    .btn {
+      background-color: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .btn:hover {
+      background-color: #3a7bc8;
+    }
+    
+    .color-picker {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .color-option {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.2s;
+    }
+    
+    .color-option.selected {
+      transform: scale(1.2);
+      border-color: #333;
+    }
+    
+    .note {
+      position: absolute;
+      min-width: 200px;
+      min-height: 200px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      padding: 15px;
+      cursor: move;
+      transition: box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .note:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    .note-header {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+    }
+    
+    .note-action {
+      background: none;
+      border: none;
+      color: rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      font-size: 14px;
+      margin-left: 8px;
+      transition: color 0.2s;
+    }
+    
+    .note-action:hover {
+      color: rgba(0, 0, 0, 0.8);
+    }
+    
+    .note-content {
+      flex-grow: 1;
+      outline: none;
+      border: none;
+      resize: none;
+      background: transparent;
+      font-size: 16px;
+      line-height: 1.5;
+      overflow-y: auto;
+    }
+    
+    .connection-status {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      z-index: 1000;
+      transition: background-color 0.3s, opacity 0.3s;
+    }
+    
+    .status-connected {
+      background-color: #4caf50;
+      color: white;
+      opacity: 1;
+    }
+    
+    .status-disconnected {
+      background-color: #f44336;
+      color: white;
+      opacity: 1;
+    }
+    
+    .status-hidden {
+      opacity: 0;
+    }
+    
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    
+    .loading-spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    @media (max-width: 768px) {
+      .toolbar {
+        flex-wrap: wrap;
+        width: 90%;
+        justify-content: center;
+      }
+      
+      .note {
+        min-width: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading">
+    <div class="loading-spinner"></div>
+  </div>
+  
+  <div class="toolbar">
+    <button id="add-note" class="btn">
+      <i class="fas fa-plus"></i> Add Note
+    </button>
+    <div class="color-picker">
+      <div class="color-option selected" data-color="#fff9c4" style="background-color: #fff9c4;"></div>
+      <div class="color-option" data-color="#bbdefb" style="background-color: #bbdefb;"></div>
+      <div class="color-option" data-color="#c8e6c9" style="background-color: #c8e6c9;"></div>
+      <div class="color-option" data-color="#f8bbd0" style="background-color: #f8bbd0;"></div>
+      <div class="color-option" data-color="#d1c4e9" style="background-color: #d1c4e9;"></div>
+    </div>
+  </div>
+  
+  <div id="canvas"></div>
+  
+  <div class="connection-status status-hidden">
+    <span id="status-text"></span>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // DOM Elements
+      const canvas = document.getElementById('canvas');
+      const addNoteBtn = document.getElementById('add-note');
+      const colorOptions = document.querySelectorAll('.color-option');
+      const connectionStatus = document.querySelector('.connection-status');
+      const statusText = document.getElementById('status-text');
+      const loading = document.querySelector('.loading');
+
+      // Variables
+      let selectedColor = '#fff9c4';
+      let activeNote = null;
+      let initialX = 0;
+      let initialY = 0;
+      let currentX = 0;
+      let currentY = 0;
+      const apiUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3000/api' 
+        : '/api';
+
+      // Connect to Socket.io
+      const socket = io();
+
+      // Socket connection events
+      socket.on('connect', () => {
+        showStatus('Connected', true);
+        loadNotes();
+      });
+
+      socket.on('disconnect', () => {
+        showStatus('Disconnected', false);
+      });
+
+      // Load notes from server
+      async function loadNotes() {
+        try {
+          const response = await fetch(`${apiUrl}/notes`);
+          const notes = await response.json();
+          notes.forEach(note => createNoteElement(note));
+          loading.style.display = 'none';
+        } catch (error) {
+          console.error('Error loading notes:', error);
+          loading.style.display = 'none';
+        }
+      }
+
+      // Create a new note
+      async function createNote(x, y) {
+        const noteData = {
+          id: generateId(),
+          content: '',
+          position: { x, y },
+          color: selectedColor
+        };
+        try {
+          const response = await fetch(`${apiUrl}/notes`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(noteData)
+          });
+          if (response.ok) return await response.json();
+        } catch (error) {
+          console.error('Error creating note:', error);
+        }
+        return noteData; // Fallback
+      }
+
+      // Update note in database
+      async function updateNote(id, data) {
+        try {
+          await fetch(`${apiUrl}/notes/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        } catch (error) {
+          console.error('Error updating note:', error);
+        }
+      }
+
+      // Delete note from database
+      async function deleteNote(id) {
+        try {
+          await fetch(`${apiUrl}/notes/${id}`, { method: 'DELETE' });
+        } catch (error) {
+          console.error('Error deleting note:', error);
+        }
+      }
+
+      // Create note DOM element
+      function createNoteElement(note) {
+        const noteElement = document.createElement('div');
+        noteElement.className = 'note';
+        noteElement.id = `note-${note.id}`;
+        noteElement.style.backgroundColor = note.color;
+        noteElement.style.left = `${note.position.x}px`;
+        noteElement.style.top = `${note.position.y}px`;
+        noteElement.setAttribute('data-id', note.id);
+
+        noteElement.innerHTML = `
+          <div class="note-header">
+            <button class="note-action edit-color" title="Change Color">
+              <i class="fas fa-palette"></i>
+            </button>
+            <button class="note-action delete-note" title="Delete Note">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          <div class="note-content" contenteditable="true">${note.content}</div>
+        `;
+
+        canvas.appendChild(noteElement);
+
+        // Enhanced dragging setup
+        noteElement.addEventListener('mousedown', startDrag);
+        noteElement.addEventListener('touchstart', startDrag, { passive: false });
+
+        const noteContent = noteElement.querySelector('.note-content');
+        noteContent.addEventListener('input', debounce(() => {
+          const id = noteElement.getAttribute('data-id');
+          const content = noteContent.innerHTML;
+          socket.emit('note:update', { id, content });
+          updateNote(id, { content });
+        }, 500));
+
+        noteContent.addEventListener('focus', () => activeNote = noteElement);
+
+        const deleteBtn = noteElement.querySelector('.delete-note');
+        deleteBtn.addEventListener('click', () => {
+          const id = noteElement.getAttribute('data-id');
+          deleteNote(id);
+          noteElement.remove();
+          socket.emit('note:delete', id);
+        });
+
+        const colorBtn = noteElement.querySelector('.edit-color');
+        colorBtn.addEventListener('click', () => {
+          const id = noteElement.getAttribute('data-id');
+          noteElement.style.backgroundColor = selectedColor;
+          socket.emit('note:update', { id, color: selectedColor });
+          updateNote(id, { color: selectedColor });
+        });
+
+        return noteElement;
+      }
+
+      // Enhanced Start Dragging
+      function startDrag(e) {
+        // Prevent dragging if clicking on contenteditable or buttons
+        if (
+          e.target.classList.contains('note-content') ||
+          e.target.classList.contains('note-action') ||
+          e.target.closest('.note-action')
+        ) return;
+
+        e.preventDefault();
+        activeNote = this;
+
+        // Get computed position if style.left/top not set
+        const rect = activeNote.getBoundingClientRect();
+        currentX = parseInt(activeNote.style.left) || (rect.left - canvas.offsetLeft);
+        currentY = parseInt(activeNote.style.top) || (rect.top - canvas.offsetTop);
+
+        if (e.type === 'touchstart') {
+          initialX = e.touches[0].clientX;
+          initialY = e.touches[0].clientY;
+          document.addEventListener('touchmove', drag, { passive: false });
+          document.addEventListener('touchend', stopDrag);
+          document.addEventListener('touchcancel', stopDrag); // Handle touch cancel
+        } else {
+          initialX = e.clientX;
+          initialY = e.clientY;
+          document.addEventListener('mousemove', drag);
+          document.addEventListener('mouseup', stopDrag);
+        }
+
+        // Bring note to front
+        activeNote.style.zIndex = 1000;
+      }
+
+      // Enhanced Drag
+      function drag(e) {
+        if (!activeNote) return;
+
+        e.preventDefault();
+
+        let clientX, clientY;
+        if (e.type === 'touchmove') {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+
+        const dx = clientX - initialX;
+        const dy = clientY - initialY;
+
+        const newX = currentX + dx;
+        const newY = currentY + dy;
+
+        // Optional: Add boundary checking
+        const canvasRect = canvas.getBoundingClientRect();
+        const noteRect = activeNote.getBoundingClientRect();
+        activeNote.style.left = `${Math.max(0, Math.min(newX, canvasRect.width - noteRect.width))}px`;
+        activeNote.style.top = `${Math.max(0, Math.min(newY, canvasRect.height - noteRect.height))}px`;
+      }
+
+      // Enhanced Stop Dragging
+      function stopDrag() {
+        if (!activeNote) return;
+
+        const id = activeNote.getAttribute('data-id');
+        const x = parseInt(activeNote.style.left);
+        const y = parseInt(activeNote.style.top);
+
+        socket.emit('note:move', { id, position: { x, y } });
+        updateNote(id, { position: { x, y } }); // Sync with server
+
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', stopDrag);
+        document.removeEventListener('touchmove', drag);
+        document.removeEventListener('touchend', stopDrag);
+        document.removeEventListener('touchcancel', stopDrag);
+
+        activeNote.style.zIndex = ''; // Reset z-index
+        activeNote = null;
+      }
+
+      // Socket events
+      socket.on('note:create', (note) => {
+        if (!document.getElementById(`note-${note.id}`)) createNoteElement(note);
+      });
+
+      socket.on('note:update', (data) => {
+        const noteElement = document.getElementById(`note-${data.id}`);
+        if (noteElement) {
+          if (data.content) {
+            const contentEl = noteElement.querySelector('.note-content');
+            if (contentEl.innerHTML !== data.content) contentEl.innerHTML = data.content;
+          }
+          if (data.color) noteElement.style.backgroundColor = data.color;
+        }
+      });
+
+      socket.on('note:move', (data) => {
+        const noteElement = document.getElementById(`note-${data.id}`);
+        if (noteElement) {
+          noteElement.style.left = `${data.position.x}px`;
+          noteElement.style.top = `${data.position.y}px`;
+        }
+      });
+
+      socket.on('note:delete', (id) => {
+        const noteElement = document.getElementById(`note-${id}`);
+        if (noteElement) noteElement.remove();
+      });
+
+      // Add a new note
+      addNoteBtn.addEventListener('click', async () => {
+        const x = window.innerWidth / 2 - 100;
+        const y = window.innerHeight / 2 - 100;
+        const note = await createNote(x, y);
+        const noteElement = createNoteElement(note);
+        noteElement.querySelector('.note-content').focus();
+      });
+
+      // Color picker
+      colorOptions.forEach(option => {
+        option.addEventListener('click', () => {
+          colorOptions.forEach(opt => opt.classList.remove('selected'));
+          option.classList.add('selected');
+          selectedColor = option.getAttribute('data-color');
+        });
+      });
+
+      // Show connection status
+      function showStatus(message, isConnected) {
+        statusText.textContent = message;
+        connectionStatus.className = `connection-status ${isConnected ? 'status-connected' : 'status-disconnected'}`;
+        setTimeout(() => connectionStatus.className = 'connection-status status-hidden', 3000);
+      }
+
+      // Utility functions
+      function generateId() {
+        return Math.random().toString(36).substr(2, 9);
+      }
+
+      function debounce(func, delay) {
+        let timer;
+        return function() {
+          clearTimeout(timer);
+          timer = setTimeout(() => func.apply(this, arguments), delay);
+        };
+      }
+
+      // Canvas panning
+      let isPanning = false;
+      let panStartX = 0;
+      let panStartY = 0;
+
+      canvas.addEventListener('mousedown', (e) => {
+        if (e.target === canvas) {
+          isPanning = true;
+          panStartX = e.clientX;
+          panStartY = e.clientY;
+          canvas.style.cursor = 'grabbing';
+        }
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        const dx = e.clientX - panStartX;
+        const dy = e.clientY - panStartY;
+        Array.from(document.querySelectorAll('.note')).forEach(note => {
+          const currentX = parseInt(note.style.left) || 0;
+          const currentY = parseInt(note.style.top) || 0;
+          note.style.left = `${currentX + dx}px`;
+          note.style.top = `${currentY + dy}px`;
+        });
+        panStartX = e.clientX;
+        panStartY = e.clientY;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!isPanning) return;
+        isPanning = false;
+        canvas.style.cursor = 'default';
+        Array.from(document.querySelectorAll('.note')).forEach(note => {
+          const id = note.getAttribute('data-id');
+          const x = parseInt(note.style.left);
+          const y = parseInt(note.style.top);
+          socket.emit('note:move', { id, position: { x, y } });
+        });
+      });
+
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    });
+  </script>
+</body>
+</html>
