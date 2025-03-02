@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Ensure CLIENT_URL is set
-const CLIENT_URL = 'https://ai-noteboook-board.onrender.com';
+const CLIENT_URL ='http://localhost:5173';
 if (!process.env.CLIENT_URL) {
   console.warn("⚠️ Warning: CLIENT_URL is not set. Defaulting to Render URL.");
 }
